@@ -21,14 +21,18 @@ const ChatBotPage = () => {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8001/chat', {
+      const res = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_input: input }),
+        body: JSON.stringify({
+          session_id: 'demo-session',  // ✅ 이 줄 추가
+          user_input: input,
+        }),
       });
+
       const { response } = await res.json();
       setMessages(prev => [...prev, { sender: 'bot', text: response }]);
-    } catch {
+    } catch (err) {
       setMessages(prev => [
         ...prev,
         { sender: 'bot', text: '⚠️ 서버 연결에 실패했습니다.' },
