@@ -1,5 +1,5 @@
-import os
 from dotenv import load_dotenv
+import os
 
 from langchain_openai import ChatOpenAI
 from langchain.prompts.chat import (
@@ -9,14 +9,19 @@ from langchain.prompts.chat import (
 )
 from langchain.prompts import FewShotPromptTemplate, PromptTemplate
 from langchain.schema import SystemMessage
-
 from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationChain
+from langchain_core.runnables.history import RunnableWithMessageHistory
+
+
+
+# ================================================================================================================================================================================
+
 
 # 환경변수 불러오기
 load_dotenv()
 if not os.getenv("OPENAI_API_KEY"):
     raise EnvironmentError("OPENAI_API_KEY 환경변수가 설정되어 있지 않습니다.")
+
 
 # 역할 부여용 시스템 프롬프트
 system_prompt = SystemMessagePromptTemplate.from_template(
@@ -46,6 +51,14 @@ emr_summary 내용을 바탕으로, 보호자의 감정을 고려하여 다음 �
 
 단, 감정 표현, 일정 문의, 시스템 질문 등에는 EMR을 인용하지 마세요.
 """.strip())
+
+
+
+
+# ================================================================================================================================================================================
+
+
+
 
 # Few-shot 예시 정의
 example_prompt = PromptTemplate(
@@ -114,10 +127,17 @@ few_shot = FewShotPromptTemplate(
     input_variables=[]
 )
 
+
+
+# ================================================================================================================================================================================
+
+
+
 # HumanMessage를 더 명확하게 수정!
 human_message = HumanMessagePromptTemplate.from_template(
     "다음 보호자의 질문에 대해 따뜻하게 공감하고 적절한 위로와 조언을 해주세요:\n{user_input}"
 )
+
 
 # PromptTemplate 구성
 prompt = ChatPromptTemplate.from_messages([
@@ -126,34 +146,36 @@ prompt = ChatPromptTemplate.from_messages([
     human_message,
 ])
 
+
+
 # LLM 구성
 llm = ChatOpenAI(
     model="gpt-4",
     temperature=0.7
 )
 
-# 체인 구성: 프롬프트 + LLM + 메모리 연결
-chain = ConversationChain(
-    llm=llm,
-    prompt=prompt,  # 기존에 만든 ChatPromptTemplate (system + few-shot + user_input)
-    memory=memory
+
+
+
+
+memory_store = {}
+
+def get_session_history(session_id: str):
+    if session_id not in memory_store:
+        memory_store[session_id] = ConversationBufferMemory(return_messages=True)
+    return memory_store[session_id].chat_memory
+
+
+chat_chain = RunnableWithMessageHistory(
+    prompt | llm,
+    get_session_history=get_session_history,
+    input_messages_key="user_input",
+    history_messages_key="history"
 )
 
-# 함수로 래핑
-def get_emotional_support_response(user_input: str) -> str:
-    try:
-        response = chain.invoke({"user_input": user_input})
-        return str(response)
-    except Exception as e:
-        return f"⚠️ 오류가 발생했습니다: {e}"
-
-# CLI 인터페이스
-if __name__ == "__main__":
-    print("무엇을 도와드릴까요? (종료하려면 '종료' 입력)")
-    while True:
-        user_input = input("보호자님: ")
-        if user_input.strip() == "종료":
-            print("챗봇을 종료합니다. 오늘도 힘내세요!")
-            break
-        answer = get_emotional_support_response(user_input)
-        print("챗봇:", answer)
+def get_emotional_support_response(session_id: str, user_input: str):
+    reply = chat_chain.invoke(
+        {"user_input": user_input},
+        config={"configurable": {"session_id": session_id}}
+    )
+    return reply.content

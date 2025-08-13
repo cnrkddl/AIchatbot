@@ -7,27 +7,61 @@ export default function LoginPage({ onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     // 로그인 검증은 생략, 바로 로그인 처리
-    onLogin();
+    if (typeof onLogin === "function") onLogin();
   };
 
   return (
-    <div>
+    <div className="page">
       <style>{`
+        .page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f8fafc;
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .wrap {
+          width: 100%;
+          max-width: 480px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+        }
+        .title {
+          font-size: 36px;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          margin: 8px 0 8px;
+          color: #111827;
+          text-align: center;
+        }
+        .subtitle {
+          margin: 0;
+          font-size: 14px;
+          color: #6b7280;
+          text-align: center;
+        }
+
         .form { 
           display: flex;
           flex-direction: column;
           gap: 10px;
           background-color: #ffffff; 
           padding: 30px; 
-          width: 450px; 
+          width: 100%;
           border-radius: 20px; 
           font-family: Roboto, 'Noto Sans KR', sans-serif;
           box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          margin: 50px auto;
+          border: 1px solid #e5e7eb;
+          box-sizing: border-box;
         }
         .flex-column > label { 
           color: #151717; 
           font-weight: 600;
+          font-size: 14px;
         }
         .inputForm {
           border: 1.5px solid #ecedec; 
@@ -37,6 +71,7 @@ export default function LoginPage({ onLogin }) {
           align-items: center; 
           padding-left: 10px;
           transition: 0.2s ease-in-out;
+          background: #fff;
         }
         .inputForm:hover {
           border-color: #a1a1a1;
@@ -52,6 +87,8 @@ export default function LoginPage({ onLogin }) {
           outline: none;
           font-family: Roboto, 'Noto Sans KR', sans-serif;
           padding-left: 10px;
+          font-size: 14px;
+          background: transparent;
         }
         ::placeholder {
           font-family: Roboto, 'Noto Sans KR', sans-serif;
@@ -70,7 +107,7 @@ export default function LoginPage({ onLogin }) {
           border: none; 
           color: white; 
           font-size: 15px; 
-          font-weight: 500; 
+          font-weight: 700; 
           border-radius: 10px; 
           height: 50px; 
           width: 100%;
@@ -101,47 +138,59 @@ export default function LoginPage({ onLogin }) {
         }
       `}</style>
 
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="flex-column">
-          <label>ID</label>
-        </div>
-        <div className="inputForm">
-          <input
-            placeholder="Enter your ID"
-            className="input"
-            type="text"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-          />
-        </div>
+      <div className="wrap">
+        {/* 상단 타이틀 */}
+        <h1 className="title">AI CARE</h1>
+        {/* <p className="subtitle">보호자 전용 케어 포털</p> */}
 
-        <div className="flex-column">
-          <label>Password</label>
-        </div>
-        <div className="inputForm">
-          <input
-            placeholder="Enter your Password"
-            className="input"
-            type="password"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-          />
-        </div>
+        {/* 기존 로그인 폼 */}
+        <form className="form" onSubmit={handleSubmit}>
+          <div className="flex-column">
+            <label htmlFor="login-id">ID</label>
+          </div>
+          <div className="inputForm">
+            <input
+              id="login-id"
+              placeholder="Enter your ID"
+              className="input"
+              type="text"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
 
-        <span className="span">비밀번호를 잊어버렸나요?</span>
+          <div className="flex-column">
+            <label htmlFor="login-pw">Password</label>
+          </div>
+          <div className="inputForm">
+            <input
+              id="login-pw"
+              placeholder="Enter your Password"
+              className="input"
+              type="password"
+              value={pw}
+              onChange={(e) => setPw(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
 
-        <button className="button-submit" type="submit">
-          Sign In
-        </button>
+          <span className="span">비밀번호를 잊어버렸나요?</span>
 
-        <button className="kakao-button" type="button">
-          <div>카카오 로그인</div>
-        </button>
+          <button className="button-submit" type="submit">
+            Sign In
+          </button>
 
-        <p className="p">
-          계정이 없으신가요? <span className="span">Sign Up</span>
-        </p>
-      </form>
+          {/* 필요시 유지/삭제 선택 */}
+          <button className="kakao-button" type="button">
+            <div>카카오 로그인</div>
+          </button>
+
+          {/* 요청대로 Sign Up 문구는 제거 */}
+        </form>
+      </div>
     </div>
   );
 }

@@ -10,7 +10,6 @@ const FeedbackPage = () => {
     const rating = hoverRating || selectedRating;
     const value = index + 1;
     if (rating >= value) return "100%";
-    if (rating + 0.5 >= value) return "50%";
     return "0%";
   };
 
@@ -26,17 +25,9 @@ const FeedbackPage = () => {
             <div
               key={i}
               style={styles.starWrapper}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const half = (e.clientX - rect.left) < rect.width / 2 ? 0.5 : 1;
-                setHoverRating(i + half);
-              }}
+              onMouseMove={() => setHoverRating(i + 1)}
               onMouseLeave={() => setHoverRating(0)}
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const half = (e.clientX - rect.left) < rect.width / 2 ? 0.5 : 1;
-                setSelectedRating(i + half);
-              }}
+              onClick={() => setSelectedRating(i + 1)}
             >
               <span style={styles.starBg}>★</span>
               <span style={{ ...styles.starFg, width: getStarWidth(i) }}>★</span>
@@ -140,7 +131,7 @@ const styles = {
   submitBtn: {
     width: "100%",
     padding: "16px",
-    background: "linear-gradient(135deg, #9bafd9, #103783)",
+    background: "#4B6EF5", // 단색으로 변경
     color: "#fff",
     border: "none",
     borderRadius: "12px",
