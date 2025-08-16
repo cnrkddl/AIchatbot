@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Header from "../components/Header";
-import HistorySection from "../components/HistorySection"; // 독립 컴포넌트 사용
 
 // 키워드 → 색상 (배지/칩용)
 const KEYWORD_COLORS = {
