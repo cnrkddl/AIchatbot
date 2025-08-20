@@ -1,192 +1,144 @@
-# main.py
-from fastapi import FastAPI, HTTPException, Query
+# backend/main.py
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 import os
 
-from chatbot_core import get_emotional_support_response
-from ocr_records import (
-    extract_text_from_pdf,
-    parse_by_date,
-    compare_changes_with_text,
-    build_nursing_notes_json,
-)
+# ===== 카카오 라우터 임포트 (패키지/단일파일 실행 모두 지원) =====
+try:
+    # 패키지 실행: uvicorn backend.main:app --reload
+    from .auth_kakao import router as kakao_router  # type: ignore
+except ImportError:
+    # 디렉토리에서 직접 실행: (cd backend && uvicorn main:app --reload)
+    from auth_kakao import router as kakao_router  # type: ignore
 
-# ===== 카카오 OAuth 유틸 (첫 번째 파일에서 쓰던 유틸 그대로 사용)
-from kakao_oauth import (
-    build_authorize_url,
-    exchange_token,
-    get_user_profile,
-)
+# ===== 프로젝트 내부 모듈 =====
+try:
+    from .chatbot_core import get_emotional_support_response  # type: ignore
+    from .ocr_records import (  # type: ignore
+        extract_text_from_pdf,
+        parse_by_date,
+        compare_changes_with_text,
+        build_nursing_notes_json,
+    )
+except ImportError:
+    # 단일파일 실행 경로 호환
+    from chatbot_core import get_emotional_support_response
+    from ocr_records import (
+        extract_text_from_pdf,
+        parse_by_date,
+        compare_changes_with_text,
+        build_nursing_notes_json,
+    )
 
-app = FastAPI()
+# ==============================
+# FastAPI App
+# ==============================
+app = FastAPI(title="AI Care Backend", version="1.0.0")
 
-# =========================
-# CORS 설정
-# =========================
+# ----- CORS -----
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    # "http://127.0.0.1:3000",
+    os.getenv("FRONTEND_ORIGIN", "").strip() or "",  # 배포 시 환경변수로 추가
+]
+ALLOWED_ORIGINS = [o for o in ALLOWED_ORIGINS if o]  # 빈 값 제거
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=ALLOWED_ORIGINS or ["*"],  # 필요 시 제한
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# =========================
-# 1) 챗봇 API
-# =========================
-class UserInput(BaseModel):
-    session_id: str
-    user_input: str
+# ----- 카카오 로그인/로그아웃/연결해제 라우터 등록 -----
+app.include_router(kakao_router)
 
+# ==============================
+# 모델 정의 (요청/응답 스키마)
+# ==============================
+class ChatRequest(BaseModel):
+    message: str
+    history: Optional[List[Dict[str, str]]] = None  # {"role":"user/assistant","content":"..."}
+
+class AnalyzePdfRequest(BaseModel):
+    pdf_path: str  # 백엔드 기준 상대/절대 경로
+
+class ParseByDateRequest(BaseModel):
+    text: str
+
+class CompareChangesRequest(BaseModel):
+    prev_text: str
+    curr_text: str
+
+# ==============================
+# 공용 유틸/헬스체크
+# ==============================
+@app.get("/health")
+def health():
+    return {"status": "ok", "time": datetime.now().isoformat()}
+
+# 홈 리다이렉트(선택)
 @app.get("/")
 def root():
-    return {"message": "챗봇 API 정상 동작 중"}
+    # 필요 없으면 삭제해도 됨
+    front = os.getenv("FRONTEND_REDIRECT_URL", "http://localhost:3000/")
+    return RedirectResponse(front)
 
+# ==============================
+# 챗봇 엔드포인트
+# ==============================
 @app.post("/chat")
-def chat_endpoint(data: UserInput):
-    reply = get_emotional_support_response(
-        session_id=data.session_id,
-        user_input=data.user_input
-    )
-    return {"response": reply}
-
-# =========================
-# 2) PDF 분석 API (문장형 결과)
-# =========================
-@app.get("/analyze-pdf")
-def analyze_pdf():
+def chat(req: ChatRequest):
     """
-    서버에 저장된 PDF를 분석해 문장 형태 결과 반환
+    감정케어/일반 챗 응답
     """
-    pdf_path = "uploads/김x애-간호기록지.pdf"  # 실제 파일 경로로 맞춰주세요
-    if not os.path.exists(pdf_path):
-        raise HTTPException(status_code=404, detail=f"PDF not found: {pdf_path}")
+    try:
+        reply = get_emotional_support_response(req.message, history=req.history)
+        return {"ok": True, "reply": reply}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"chat failed: {e}")
 
-    pdf_text = extract_text_from_pdf(pdf_path)
-    parsed = parse_by_date(pdf_text)
-    text_with_changes = compare_changes_with_text(parsed)
-    return {"result": text_with_changes}
-
-# =========================
-# 3) PatientInfoPage용 API (JSON 구조)
-#    - 환자별 PDF 매핑 + 기간/버전 확장 고려
-# =========================
-
-# 환자ID → 기간별 문서 목록 (from/to는 YYYY-MM-DD, to=None은 열린 구간)
-PATIENT_PDFS = {
-    "25-0000032": [  # 김x애
-        {"from": "2025-08-01", "to": None, "path": "uploads/김x애-간호기록지.pdf"},
-    ],
-    "23-0000009": [  # 장x규
-        {"from": "2025-08-10", "to": None, "path": "uploads/장x규-간호기록지.pdf"},
-        # 새 버전 생기면 아래처럼 추가
-        # {"from": "2025-09-01", "to": None, "path": "uploads/장x규-간호기록지_2.pdf"},
-    ],
-}
-
-def _within(d: str, start: Optional[str], end: Optional[str]) -> bool:
+# ==============================
+# PDF 분석/간호기록 파싱 엔드포인트
+# ==============================
+@app.post("/analyze-pdf")
+def analyze_pdf(req: AnalyzePdfRequest):
     """
-    d(YYYY-MM-DD)가 [start, end]에 포함되는가? end=None이면 열린 구간
+    PDF -> 텍스트 -> 날짜별 파싱 결과 반환
     """
-    dd = datetime.fromisoformat(d).date()
-    s = datetime.fromisoformat(start).date() if start else date.min
-    e = datetime.fromisoformat(end).date() if end else date.max
-    return s <= dd <= e
+    try:
+        text = extract_text_from_pdf(req.pdf_path)
+        by_date = parse_by_date(text)
+        notes_json = build_nursing_notes_json(by_date)
+        return {"ok": True, "by_date": by_date, "notes": notes_json}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"analyze-pdf failed: {e}")
 
-def select_pdf_for_patient(patient_id: str, target_date: Optional[str]) -> Optional[str]:
+@app.post("/parse-by-date")
+def parse_by_date_api(req: ParseByDateRequest):
     """
-    환자ID와 (옵션) 기준일로 적절한 PDF 경로 반환
-    - 기준일 없으면 최신(from 가장 최근) 문서를 선택
-    - 기준일 있으면 그 날짜를 포함하는 기간 문서를 선택
+    텍스트를 날짜별로 파싱
     """
-    entries = PATIENT_PDFS.get(patient_id, [])
-    if not entries:
-        return None
+    try:
+        by_date = parse_by_date(req.text)
+        return {"ok": True, "by_date": by_date}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"parse-by-date failed: {e}")
 
-    # 기준일 없으면 최신(from 최신) 우선으로 존재하는 파일 반환
-    if not target_date:
-        entries_sorted = sorted(entries, key=lambda x: x.get("from") or "", reverse=True)
-        for ent in entries_sorted:
-            if os.path.exists(ent["path"]):
-                return ent["path"]
-        return None
-
-    # 기준일 있는 경우 그 기간에 해당하는 문서를 선택
-    for ent in entries:
-        if _within(target_date, ent.get("from"), ent.get("to")) and os.path.exists(ent["path"]):
-            return ent["path"]
-    return None
-
-# ====== 응답 스키마 ======
-class NursingNoteItem(BaseModel):
-    keyword: str
-    detail: str
-
-class NursingNote(BaseModel):
-    date: str
-    items: List[NursingNoteItem]
-
-@app.get("/patients/{patient_id}/nursing-notes", response_model=List[NursingNote])
-def get_nursing_notes(
-    patient_id: str,
-    target_date: Optional[str] = Query(
-        None, description="YYYY-MM-DD (이 날짜가 포함되는 문서를 우선 선택)"
-    ),
-):
+@app.post("/compare-changes")
+def compare_changes_api(req: CompareChangesRequest):
     """
-    환자별 간호기록지(PDF)를 파싱해 날짜별 특이사항을 JSON 배열로 반환
-      - target_date 미지정 시: 최신 문서 사용
-      - target_date 지정 시: 해당 날짜가 포함되는 기간 문서 사용
-    반환 형식:
-      [
-        {"date": "2025-08-12", "items": [{"keyword":"발열","detail":"38.0도..."}, ...]},
-        ...
-      ]
+    전/후 텍스트 비교로 변화점 요약
     """
-    pdf_path = select_pdf_for_patient(patient_id, target_date)
-    if not pdf_path:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No PDF found for patient {patient_id} (target_date={target_date})"
-        )
-
-    notes = build_nursing_notes_json(pdf_path)
-    return notes
-
-# =========================
-# 4) 카카오 로그인 API (첫 번째 파일의 기능 복원)
-# =========================
-
-@app.get("/auth/kakao/login")
-def kakao_login():
-    """
-    카카오 OAuth 시작 URL로 리다이렉트
-    scope 예시는 닉네임/이메일
-    """
-    url = build_authorize_url(scope="profile_nickname,account_email")
-    return RedirectResponse(url)
-
-
-@app.get("/auth/kakao/callback")
-def kakao_callback(code: str):
-    """
-    인가 코드를 받아 액세스 토큰 교환 → 사용자 정보 조회 → 프론트로 리다이렉트
-    """
-    token_info = exchange_token(code)
-    access_token = token_info.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=400, detail="카카오 토큰 발급 실패")
-
-    user_info = get_user_profile(access_token)
-
-    # 프론트엔드 주소로 리다이렉트 (사용자 정보는 쿼리 파라미터로 일부만 전달)
-    nickname = user_info.get("properties", {}).get("nickname", "친구")
-    frontend_url = f"http://localhost:3000/login?login=success&nickname={nickname}"
-    return RedirectResponse(frontend_url)
+    try:
+        diff_text = compare_changes_with_text(req.prev_text, req.curr_text)
+        return {"ok": True, "diff": diff_text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"compare-changes failed: {e}")

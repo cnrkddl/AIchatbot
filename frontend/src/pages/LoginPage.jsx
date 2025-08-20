@@ -1,27 +1,40 @@
 // src/pages/LoginPage.jsx
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8001";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // 카카오 인증 후 ?login=success(또는 login%3Dsuccess) 감지 → /home 이동
+  // 페이지 진입 시 이미 로그인된 상태면 홈으로 보냄
   useEffect(() => {
-    const raw = location.search || window.location.search || "";
-    if (raw.includes("login=success") || raw.includes("login%3Dsuccess")) {
-      navigate("/home", { replace: true });
-    }
-  }, [location, navigate]);
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/kakao/whoami`, {
+          credentials: "include",
+        });
+        const me = await res.json();
+        if (!alive) return;
+        if (me?.logged_in) {
+          navigate("/home", { replace: true });
+        }
+      } catch (_) {
+        // 네트워크 오류면 그냥 로그인 버튼 보여줌
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [navigate]);
 
   const handleKakaoLogin = () => {
     setLoading(true);
-    window.location.href = `${API_BASE}/auth/kakao/login`;
+    // fetch가 아니라 "페이지 이동"이어야 카카오 화면으로 넘어갑니다.
+    window.location.assign(`${API_BASE}/auth/kakao/login`);
   };
-
 
   return (
     <div style={styles.wrap}>
