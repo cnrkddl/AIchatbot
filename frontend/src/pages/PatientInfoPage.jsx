@@ -38,7 +38,6 @@ export default function PatientInfoPage() {
     []
   );
 
-
   // 데이터 로드
   useEffect(() => {
     let ignore = false;
@@ -52,15 +51,24 @@ export default function PatientInfoPage() {
           throw new Error(detail || `API Error ${res.status}`);
         }
         const data = await res.json();
+
         if (!ignore) {
-          // 백엔드가 이미 템플릿 반영(키워드/원인 매핑, '호전됨' 포함)한 JSON을 내려줌
-          setNotes(Array.isArray(data) ? data : []);
-          if (Array.isArray(data) && data.length > 0) {
-            setSelectedDate(data[data.length - 1].date); // 최신 날짜
+          // 백엔드가 배열(권장) 또는 { ok, notes, ... }(객체) 모두 대응
+          const arr = Array.isArray(data)
+            ? data
+            : (Array.isArray(data?.notes) ? data.notes : []);
+
+          setNotes(arr);
+
+          if (arr.length > 0) {
+            // 날짜는 오름차순이라고 가정 → 마지막이 최신
+            setSelectedDate(arr[arr.length - 1].date || "");
           } else {
             setSelectedDate("");
           }
-          setQuery(""); // 환자 변경 시 검색 초기화
+
+          // 환자 변경 시 검색 초기화
+          setQuery("");
         }
       } catch (e) {
         if (!ignore) setError(e.message || "불러오기에 실패했습니다.");
