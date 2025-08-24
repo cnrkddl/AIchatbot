@@ -15,10 +15,33 @@ export default function PatientInfoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [kakaoNickname, setKakaoNickname] = useState(""); // 카카오 닉네임 상태 추가
 
   // 검색 상태 (히스토리 섹션에서 사용)
   const [query, setQuery] = useState("");         // 자유 검색(키워드/내용)
   const [debounced, setDebounced] = useState(""); // 간단 디바운스
+
+  // 카카오 로그인 정보 가져오기
+  useEffect(() => {
+    const token = localStorage.getItem('kakao_access_token');
+    if (token) {
+      // 카카오 사용자 정보 가져오기
+      fetch('https://kapi.kakao.com/v2/user/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.properties && data.properties.nickname) {
+          setKakaoNickname(data.properties.nickname);
+        }
+      })
+      .catch(error => {
+        console.error('카카오 사용자 정보 가져오기 실패:', error);
+      });
+    }
+  }, []);
 
   // ocr_records.py의 라벨을 반영한 키워드-색상 매핑
   const keywordColor = useMemo(
@@ -149,6 +172,9 @@ export default function PatientInfoPage() {
             <h2 style={styles.title}>환자 상태 정보</h2>
             <p style={styles.subtitle}>
               간호기록지 특이사항을 날짜별로 확인합니다.
+              {kakaoNickname && (
+                <span style={styles.nickname}> • {kakaoNickname}님</span>
+              )}
             </p>
           </div>
 
@@ -388,6 +414,11 @@ const styles = {
 
   sectionTitle: { fontSize: 16, fontWeight: 800, margin: 0, color: "#0f172a" },
   badgeWrap: { display: "flex", flexWrap: "wrap" },
+  nickname: {
+    fontSize: 14,
+    color: "#475569",
+    fontWeight: 500,
+  },
 
   // 검색 X 버튼
   clearBtn: {
