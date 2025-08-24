@@ -30,6 +30,7 @@ try:
         compare_changes_with_text,
         build_nursing_notes_json,
     )
+    from .database import db_manager  # type: ignore
 except ImportError:
     from chatbot_core import get_emotional_support_response
     from ocr_records import (
@@ -38,6 +39,7 @@ except ImportError:
         compare_changes_with_text,
         build_nursing_notes_json,
     )
+    from database import db_manager
 
 # ==============================
 # FastAPI App
@@ -78,6 +80,11 @@ class ParseByDateRequest(BaseModel):
 class CompareChangesRequest(BaseModel):
     prev_text: str
     curr_text: str
+
+class FeedbackRequest(BaseModel):
+    rating: int
+    comment: str
+    timestamp: str
 
 # ==============================
 # 공용
@@ -189,3 +196,166 @@ def get_nursing_notes(patient_id: str):
         "by_date": by_date,
         "notes": notes_json,
     }
+
+# ==============================
+# 피드백 저장
+# ==============================
+@app.post("/feedback")
+def save_feedback(req: FeedbackRequest):
+    """
+    피드백 저장 API
+    
+    요청(JSON):
+      {
+        "rating": 5,
+        "comment": "서비스가 매우 만족스럽습니다",
+        "timestamp": "2024-01-01T12:00:00.000Z"
+      }
+    
+    응답(JSON):
+      {"ok": True, "message": "피드백이 저장되었습니다"}
+    """
+    try:
+        # 피드백 데이터 검증
+        if not (1 <= req.rating <= 5):
+            raise HTTPException(status_code=400, detail="별점은 1-5 사이여야 합니다")
+        
+        if not req.comment.strip():
+            raise HTTPException(status_code=400, detail="의견을 입력해주세요")
+        
+        # 현재 로그인한 사용자 이메일 가져오기 (쿠키에서)
+        # 실제 구현에서는 인증된 사용자 정보를 사용해야 함
+        user_email = "sumint730@naver.com"  # 임시로 하드코딩, 나중에 수정 필요
+        
+        # 데이터베이스에 피드백 저장
+        feedback_id = db_manager.save_feedback(
+            user_email=user_email,
+            rating=req.rating,
+            comment=req.comment.strip(),
+            timestamp=req.timestamp
+        )
+        
+        return {
+            "ok": True, 
+            "message": "피드백이 성공적으로 저장되었습니다",
+            "feedback_id": feedback_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"피드백 저장 실패: {e}")
+
+# ==============================
+# 저장된 피드백 조회
+# ==============================
+@app.get("/feedback")
+def get_feedback():
+    """
+    저장된 모든 피드백 조회
+    
+    응답(JSON):
+      {
+        "ok": True,
+        "feedback": [
+          {
+            "id": 1,
+            "user_email": "sumint730@naver.com",
+            "rating": 5,
+            "comment": "서비스가 매우 만족스럽습니다",
+            "timestamp": "2024-01-01T12:00:00.000Z",
+            "created_at": "2024-01-01T12:00:00.000Z"
+          }
+        ]
+      }
+    """
+    try:
+        feedback_data = db_manager.get_feedback()
+        return {"ok": True, "feedback": feedback_data}
+        
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"피드백 조회 실패: {e}")
+
+# ==============================
+# 사용자별 환자 목록 조회
+# ==============================
+@app.get("/my-patients")
+def get_my_patients(request: Request):
+    """
+    로그인한 사용자의 환자 목록 조회
+    
+    응답(JSON):
+      {
+        "ok": True,
+        "patients": [
+          {
+            "patient_id": "25-0000032",
+            "patient_name": "김x애",
+            "relationship": "딸",
+            "birth_date": "1935-03-15",
+            "room_number": "301",
+            "admission_date": "2024-01-15"
+          }
+        ]
+      }
+    """
+    try:
+        # 현재 로그인한 사용자 이메일 가져오기 (쿠키에서)
+        # 실제 구현에서는 인증된 사용자 정보를 사용해야 함
+        user_email = "sumint730@naver.com"  # 임시로 하드코딩, 나중에 수정 필요
+        
+        patients = db_manager.get_user_patients(user_email)
+        return {"ok": True, "patients": patients}
+        
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"환자 목록 조회 실패: {e}")
+
+# ==============================
+# 사용자-환자 연결 추가
+# ==============================
+@app.post("/add-patient")
+async def add_patient(request: Request):
+    """
+    사용자-환자 연결 추가
+    
+    요청(JSON):
+      {
+        "patient_id": "25-0000032",
+        "patient_name": "김x애",
+        "relationship": "딸"
+      }
+    """
+    try:
+        # 현재 로그인한 사용자 이메일 가져오기
+        user_email = "sumint730@naver.com"  # 임시로 하드코딩
+        
+        # 요청 본문 파싱
+        body = await request.json()
+        patient_id = body.get("patient_id")
+        patient_name = body.get("patient_name")
+        relationship = body.get("relationship")
+        
+        if not patient_id or not patient_name:
+            raise HTTPException(status_code=400, detail="환자 ID와 이름은 필수입니다")
+        
+        # 데이터베이스에 연결 추가
+        success = db_manager.add_user_patient(
+            user_email=user_email,
+            patient_id=patient_id,
+            patient_name=patient_name,
+            relationship=relationship
+        )
+        
+        if success:
+            return {"ok": True, "message": "환자가 추가되었습니다"}
+        else:
+            return {"ok": False, "message": "이미 연결된 환자입니다"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"환자 추가 실패: {e}")
