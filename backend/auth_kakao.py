@@ -158,8 +158,19 @@ def whoami(request: Request):
     if r.status_code != 200:
         return JSONResponse({"logged_in": False, "error": r.text}, status_code=401)
     prof = r.json()
+    
+    # 카카오 닉네임과 프로필 이미지 추출
+    nickname = None
+    profile_image = None
+    if prof.get("kakao_account") and prof["kakao_account"].get("profile"):
+        profile = prof["kakao_account"]["profile"]
+        nickname = profile.get("nickname")
+        profile_image = profile.get("profile_image_url")
+    
     return JSONResponse({
         "logged_in": True,
         "id": prof.get("id"),
         "email": (prof.get("kakao_account") or {}).get("email"),
+        "nickname": nickname,  # 카카오 닉네임
+        "profile_image": profile_image,  # 카카오 프로필 이미지
     })
