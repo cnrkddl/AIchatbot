@@ -1,0 +1,27 @@
+0000000000000000000000000000000000000000 c2f4ea627f522ac30b2b839a3d9e0296a1dbfcdb cnrkddl <jiminxkey@naver.com> 1753794413 +0900	commit (initial): 기초 구조 설정
+c2f4ea627f522ac30b2b839a3d9e0296a1dbfcdb c2f4ea627f522ac30b2b839a3d9e0296a1dbfcdb cnrkddl <jiminxkey@naver.com> 1753794707 +0900	Branch: renamed refs/heads/master to refs/heads/main
+c2f4ea627f522ac30b2b839a3d9e0296a1dbfcdb c1a2c5da675b4cf4530e7a3184de87615cf8fc0b cnrkddl <jiminxkey@naver.com> 1753794802 +0900	pull origin main --allow-unrelated-histories --no-rebase: Merge made by the 'ort' strategy.
+c1a2c5da675b4cf4530e7a3184de87615cf8fc0b ab4118608c323723df2357327249bbb3c51b2fe0 cnrkddl <jiminxkey@naver.com> 1753795408 +0900	commit: 루트 파일 정리
+ab4118608c323723df2357327249bbb3c51b2fe0 56c14818ea36a56ae91d1b98620a7e0f98664af3 cnrkddl <jiminxkey@naver.com> 1754475452 +0900	commit: 디자인수정 및 헤더설정
+56c14818ea36a56ae91d1b98620a7e0f98664af3 af7f3810cd12364e1fcec3446ff5a49414bc63e4 cnrkddl <jiminxkey@naver.com> 1755074509 +0900	merge secondbranch: Fast-forward
+af7f3810cd12364e1fcec3446ff5a49414bc63e4 5660fff23cac4cd16f69ee5fd576fb2a0eee60c0 cnrkddl <jiminxkey@naver.com> 1755341537 +0900	commit: 환자상태정보페이지
+5660fff23cac4cd16f69ee5fd576fb2a0eee60c0 260d35add7a1523f8654c9f7819928ef25d56baa cnrkddl <jiminxkey@naver.com> 1755410798 +0900	commit: PatientInfoPage수정
+260d35add7a1523f8654c9f7819928ef25d56baa a2c06795a8f0acd98271da21becc4aba1019e7b3 cnrkddl <jiminxkey@naver.com> 1755420514 +0900	commit: PatiendHistoryCard 업데이트
+a2c06795a8f0acd98271da21becc4aba1019e7b3 fccfb1092d01a82b8147a0f2eab8289939023f65 cnrkddl <jiminxkey@naver.com> 1755420615 +0900	commit (amend): PatientInfoPage수정
+fccfb1092d01a82b8147a0f2eab8289939023f65 6bc2b11e5ddb64dd5d84cd7ee02163baa5dda258 cnrkddl <jiminxkey@naver.com> 1755607881 +0900	commit: 카카오 로그인
+6bc2b11e5ddb64dd5d84cd7ee02163baa5dda258 c04141c893db5336ae71dc7e80a5b977f2cba118 cnrkddl <jiminxkey@naver.com> 1755615003 +0900	commit: 로그인 후 화면 연결
+c04141c893db5336ae71dc7e80a5b977f2cba118 f6eb720352ad4bee5b5cf10b690899d2f1762141 cnrkddl <jiminxkey@naver.com> 1755656131 +0900	commit: 알림기능해제
+f6eb720352ad4bee5b5cf10b690899d2f1762141 66bde25779cc0906945e26b2d8379af726a40bd9 cnrkddl <jiminxkey@naver.com> 1755661607 +0900	commit: ocrRecord 수정
+66bde25779cc0906945e26b2d8379af726a40bd9 f438cbd73ca6c50352aeade3ab725a9e7e030e83 cnrkddl <jiminxkey@naver.com> 1755671920 +0900	commit: 연결해제기능 수정
+f438cbd73ca6c50352aeade3ab725a9e7e030e83 2435cc968d45af9a0e3c555aacbf7b2ad01f5c11 cnrkddl <jiminxkey@naver.com> 1755696004 +0900	commit: 프론트-백 연결
+2435cc968d45af9a0e3c555aacbf7b2ad01f5c11 fae85a35d73dd5945e8c0d1f7366b96d0f49e683 cnrkddl <jiminxkey@naver.com> 1756003849 +0900	commit: 피드백 db구현
+fae85a35d73dd5945e8c0d1f7366b96d0f49e683 704870b92c85d0839b2ea2ef533be132c49159dc cnrkddl <jiminxkey@naver.com> 1756004009 +0900	commit: 카카오닉네임, 프로필이미지 추출
+704870b92c85d0839b2ea2ef533be132c49159dc 5af99fbdae9e3204fab6274b4f611faad3ee16c7 cnrkddl <jiminxkey@naver.com> 1756004108 +0900	commit: db파일 검사
+5af99fbdae9e3204fab6274b4f611faad3ee16c7 19f754456dead8f9eefce71f6d626b55c8d12118 cnrkddl <jiminxkey@naver.com> 1756004191 +0900	commit: db 구현
+19f754456dead8f9eefce71f6d626b55c8d12118 c66adfa90b45aa015dfd434fd21ae4b31ce4d98b cnrkddl <jiminxkey@naver.com> 1756004299 +0900	commit: main.py 수정
+c66adfa90b45aa015dfd434fd21ae4b31ce4d98b f0e09cffdd3784c920e67bfa0694c14b333674bb cnrkddl <jiminxkey@naver.com> 1756004360 +0900	commit: 사용자-환자 연결 시스템
+f0e09cffdd3784c920e67bfa0694c14b333674bb a771508a0013169307fcf1ffbe1a53495f899d46 cnrkddl <jiminxkey@naver.com> 1756004622 +0900	commit: 프론트 디자인 수정
+a771508a0013169307fcf1ffbe1a53495f899d46 ea436d7e3627afeb165b4317c2586f3ca8d895fd cnrkddl <jiminxkey@naver.com> 1756016021 +0900	commit: 최종 커밋
+ea436d7e3627afeb165b4317c2586f3ca8d895fd a834559a936ed1e9d3cb640b46afed1997d36e59 cnrkddl <jiminxkey@naver.com> 1756016151 +0900	commit (amend): 최종 커밋
+a834559a936ed1e9d3cb640b46afed1997d36e59 6f5f07491fc44937ea581f30ae486bb287a72bd7 cnrkddl <jiminxkey@naver.com> 1756016307 +0900	commit: 최종 커밋
+6f5f07491fc44937ea581f30ae486bb287a72bd7 513f5505892c44ef9e17a7645853662a93bbb81b cnrkddl <jiminxkey@naver.com> 1756016457 +0900	commit: 마지막 커밋
