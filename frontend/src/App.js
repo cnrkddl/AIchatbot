@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -15,6 +15,34 @@ import FeedbackPage    from './pages/FeedbackPage';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+
+  // 로그인 상태 확인 및 사용자 정보 가져오기
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/kakao/whoami`, {
+          credentials: "include",
+        });
+        const me = await res.json();
+        
+        if (me?.logged_in) {
+          setIsLoggedIn(true);
+          // 카카오 닉네임을 localStorage에 저장
+          if (me.nickname) {
+            localStorage.setItem("kakao_nickname", me.nickname);
+          }
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error("로그인 상태 확인 실패:", error);
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, [API_BASE]);
 
   return (
     <Router>

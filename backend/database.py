@@ -1,4 +1,3 @@
-
 # backend/database.py
 import sqlite3
 import os
@@ -78,7 +77,7 @@ class DatabaseManager:
         cursor.execute('''
             INSERT OR IGNORE INTO user_patient_relations (user_email, patient_id, patient_name, relationship)
             VALUES (?, ?, ?, ?)
-        ''', ("여기에 카카오 아이디 적기", "25-0000032", "김x애", "딸"))
+        ''', ("angel031024@naver.com", "25-0000032", "김x애", "딸"))
         
         # # ===== 추가 환자 예시 (샘플 데이터) =====
         # # 환자 2: 박영희
